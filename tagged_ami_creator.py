@@ -19,6 +19,7 @@ class TaggedAMICreator:
         self.ec2_resource = self.session.resource("ec2")
 
         self.waiter_image_available = self.ec2_client.get_waiter("image_available")
+        self.waiter_instance_exists = self.ec2_client.get_waiter("instance_exists")
 
     def take_image(self, instance_ids):
 
@@ -27,6 +28,22 @@ class TaggedAMICreator:
         for instance_id in instance_ids:
 
             timestr = time.strftime("%m%d%Y-%H%M")
+
+            # Set the max_attempts for this waiter (default 40)
+            self.waiter_instance_exists.config.max_attempts = 1
+
+            try:
+                self.waiter_instance_exists.wait(
+                    InstanceIds=[
+                        instance_id,
+                    ]
+                )
+            except boto_fail.WaiterError as e:
+                if "Max attempts exceeded" in e.message:
+                    print("****Instance {} not found in {}. Check configuration.".format(instance_id, self.aws_region))
+                    continue
+                else:
+                    return "ERROR: {} on {}".format(e, instance_id)
 
             instance = self.ec2_resource.Instance(instance_id)
 
