@@ -38,14 +38,15 @@ class TaggedAMICreator:
                         instance_id,
                     ]
                 )
+
+                instance = self.ec2_resource.Instance(instance_id)
+                
             except boto_fail.WaiterError as e:
                 if "Max attempts exceeded" in e.message:
                     print("****Instance {} not found in {}. Check configuration.".format(instance_id, self.aws_region))
                     continue
                 else:
                     return "ERROR: {} on {}".format(e, instance_id)
-
-            instance = self.ec2_resource.Instance(instance_id)
 
             instance_tags = instance.tags
             remove_tags = instance_tags
